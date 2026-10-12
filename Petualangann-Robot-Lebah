@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bee Factor Adventure — Petualangan Mencari Faktor!</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+* { margin:0; padding:0; box-sizing:border-box; 
+    font-family:'Comic Sans MS','Segoe UI',sans-serif; 
+    -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background: linear-gradient(180deg,#87CEEB 0%,#B0E0E6 40%,#98FB98 100%);
+  user-select:none;
+}
+
+/* ============================================================
+   APP CONTAINER
+   ============================================================ */
+#app {
+  position:relative; width:100vw; height:100vh; overflow:hidden;
+}
+
+/* ============================================================
+   BACKGROUND LAYERS (awan, matahari, rumput)
+   ============================================================ */
+.bg-sun {
+  position:absolute; top:20px; right:40px;
+  width:90px; height:90px; border-radius:50%;
+  background: radial-gradient(circle,#FFEB3B,#FFC107,#FF9800);
+  box-shadow:0 0 60px #FFC107;
+  animation: sunPulse 3s ease-in-out infinite;
+}
+@keyframes sunPulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+
+.cloud {
+  position:absolute; background:#fff; border-radius:50px;
+  opacity:0.9; box-shadow: 30px 0 0 #fff, -30px 0 0 #fff, 0 -20px 0 #fff;
+}
+.cloud::before, .cloud::after {
+  content:''; position:absolute; background:#fff; border-radius:50%;
+}
+.cloud1 { width:80px; height:30px; top:60px; left:-100px; animation: floatCloud 40s linear infinite; }
+.cloud2 { width:60px; height:24px; top:120px; left:-100px; animation: floatCloud 60s linear infinite 5s; }
+.cloud3 { width:100px; height:36px; top:40px; left:-140px; animation: floatCloud 50s linear infinite 12s; }
+@keyframes floatCloud {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(100vw + 200px)); }
+}
+
+.grass {
+  position:absolute; bottom:0; left:0; width:100%; height:120px;
+  background: linear-gradient(180deg,#7CFC00 0%,#32CD32 60%,#228B22 100%);
+  border-top-left-radius:50% 20px;
+  border-top-right-radius:50% 20px;
+}
+.flower {
+  position:absolute; bottom:70px; font-size:26px;
+  animation: sway 3s ease-in-out infinite;
+}
+@keyframes sway { 0%,100%{transform:rotate(-5deg);} 50%{transform:rotate(5deg);} }
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.screen {
+  position:absolute; inset:0; display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; overflow-y:auto;
+}
+.screen.active { display:flex; }
+
+/* ============================================================
+   MENU SCREEN
+   ============================================================ */
+.menu-card {
+  background: rgba(255,255,255,0.95);
+  border-radius: 30px; padding: 30px 40px;
+  box-shadow: 0 15px 50px rgba(0,0,0,0.25),
+              inset 0 0 0 6px #FFD700,
+              inset 0 0 0 10px #FFA500;
+  text-align: center; max-width: 600px; width:100%;
+  animation: popIn 0.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn { from { transform: scale(0.6); opacity:0; } to { transform:scale(1); opacity:1; } }
+
+.menu-title {
+  font-size: 2.1em; color:#B8860B; margin-bottom: 8px;
+  text-shadow: 2px 2px 0 #FFD700, 4px 4px 0 rgba(0,0,0,0.15);
+  letter-spacing: 1px;
+}
+.menu-subtitle { color:#8B4513; font-size:1em; margin-bottom: 22px; }
+
+input#playerName {
+  width:100%; padding:14px 20px; font-size:1.1em;
+  border:3px solid #FFC107; border-radius:20px; outline:none;
+  text-align:center; margin-bottom:16px;
+  background:#FFFDE7;
+}
+input#playerName:focus { border-color:#FF9800; box-shadow: 0 0 0 4px rgba(255,193,7,0.3); }
+
+.btn {
+  border:none; cursor:pointer; font-weight:bold;
+  padding: 14px 28px; font-size:1.05em;
+  border-radius: 30px; margin: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+}
+.btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+.btn:disabled { opacity:0.55; cursor:not-allowed; }
+
+.btn-primary { background: linear-gradient(180deg,#FFD700,#FFA500); color:#5D4037; }
+.btn-primary:hover:not(:disabled) { background: linear-gradient(180deg,#FFEB3B,#FF9800); }
+
+.btn-secondary { background: linear-gradient(180deg,#4FC3F7,#0288D1); color:white; }
+.btn-secondary:hover:not(:disabled) { background: linear-gradient(180deg,#81D4FA,#039BE5); }
+
+.btn-success { background: linear-gradient(180deg,#81C784,#388E3C); color:white; }
+.btn-warning { background: linear-gradient(180deg,#FFB74D,#E65100); color:white; }
+.btn-danger { background: linear-gradient(180deg,#E57373,#C62828); color:white; }
+.btn-small { padding: 8px 16px; font-size:0.9em; }
+
+/* ============================================================
+   BIMO — Robot Lebah (CSS art + animasi)
+   ============================================================ */
+.bimo-wrap {
+  position: relative; width: 140px; height: 140px;
+  margin: 10px auto;
+  animation: bimoFloat 2.5s ease-in-out infinite;
+}
+@keyframes bimoFloat {
+  0%,100% { transform: translateY(0) rotate(-3deg); }
+  50%     { transform: translateY(-15px) rotate(3deg); }
+}
+
+.bimo-wrap.celebrate { animation: bimoDance 0.5s ease-in-out 4; }
+@keyframes bimoDance {
+  0%,100% { transform: rotate(0) scale(1); }
+  25%     { transform: rotate(-20deg) scale(1.1); }
+  75%     { transform: rotate(20deg) scale(1.1); }
+}
+.bimo-wrap.sad { animation: bimoSad 0.6s ease-in-out 2; }
+@keyframes bimoSad {
+  0%,100% { transform: rotate(0) translateY(0); }
+  50%     { transform: rotate(-8deg) translateY(8px); }
+}
+
+.bimo-body {
+  position:absolute; width:80px; height:70px;
+  left:30px; top:40px;
+  background: linear-gradient(180deg,#FFD54F,#FFA000);
+  border-radius: 50% 50% 45% 45%;
+  box-shadow: inset -8px -8px 12px rgba(0,0,0,0.15), 0 6px 15px rgba(0,0,0,0.2);
+  border: 3px solid #5D4037;
+  z-index:2;
+}
+.bimo-stripe {
+  position:absolute; width:80px; height:10px;
+  left:30px; background:#5D4037;
+  border-radius:2px; z-index:3;
+}
+.bimo-stripe.s1 { top:65px; }
+.bimo-stripe.s2 { top:85px; }
+
+.bimo-head {
+  position:absolute; width:60px; height:55px;
+  left:40px; top:5px;
+  background: linear-gradient(180deg,#FFF176,#FFC107);
+  border-radius: 50%;
+  border:3px solid #5D4037;
+  box-shadow: inset -6px -6px 10px rgba(0,0,0,0.1);
+  z-index:4;
+}
+.bimo-eye {
+  position:absolute; width:14px; height:16px;
+  background:#212121; border-radius:50%;
+  top:20px; z-index:5;
+}
+.bimo-eye::after {
+  content:''; position:absolute; width:4px; height:4px;
+  background:#fff; border-radius:50%; top:3px; left:3px;
+}
+.bimo-eye.left { left:46px; }
+.bimo-eye.right { left:72px; }
+.bimo-eye.blink { animation: blink 0.3s ease-in-out; }
+@keyframes blink { 0%,100%{transform:scaleY(1);} 50%{transform:scaleY(0.1);} }
+
+.bimo-mouth {
+  position:absolute; width:14px; height:7px;
+  left:63px; top:45px;
+  background:#5D4037;
+  border-radius: 0 0 50% 50%;
+  z-index:5;
+}
+.bimo-wrap.sad .bimo-mouth { border-radius: 50% 50% 0 0; top:48px; }
+
+.bimo-antenna {
+  position:absolute; width:3px; height:22px;
+  background:#5D4037; top:-15px;
+  transform-origin: bottom;
+  z-index:3;
+}
+.bimo-antenna.l { left:55px; transform: rotate(-15deg); }
+.bimo-antenna.r { left:82px; transform: rotate(15deg); }
+.bimo-antenna::after {
+  content:''; position:absolute; width:10px; height:10px;
+  background: radial-gradient(circle,#FF5252,#B71C1C);
+  border-radius:50%; top:-8px; left:-4px;
+  box-shadow: 0 0 8px #FF5252;
+  animation: glow 1.5s ease-in-out infinite;
+}
+@keyframes glow { 0%,100%{box-shadow:0 0 8px #FF5252;} 50%{box-shadow:0 0 18px #FF5252;} }
+
+/* Sayap mekanis */
+.wing {
+  position:absolute; width:34px; height:44px;
+  background: rgba(224,247,250,0.85);
+  border:2px solid #4DD0E1;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  top:35px;
+  transform-origin: bottom center;
+  z-index:1;
+  box-shadow: 0 0 12px rgba(0,188,212,0.5);
+}
+.wing.left { left:5px; animation: flapL 0.15s ease-in-out infinite alternate; }
+.wing.right { right:5px; animation: flapR 0.15s ease-in-out infinite alternate; }
+@keyframes flapL {
+  from { transform: rotate(-25deg) scaleY(0.8); }
+  to   { transform: rotate(-5deg) scaleY(1.1); }
+}
+@keyframes flapR {
+  from { transform: rotate(25deg) scaleY(0.8); }
+  to   { transform: rotate(5deg) scaleY(1.1); }
+}
+
+/* Bimo size variants */
+.bimo-wrap.mini { width: 90px; height:90px; transform: scale(0.65); }
+.bimo-wrap.mini .bimo-body { left:5px; }
+.bimo-wrap.mini .bimo-head { left:15px; }
+
+/* ============================================================
+   DIALOG BOX
+   ============================================================ */
+.dialog {
+  position:relative; max-width: 560px;
+  background: white; border-radius: 22px;
+  padding: 16px 20px; margin-top: 12px;
+  border: 4px solid #FFC107;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  text-align:center; font-size: 1.05em; color:#5D4037;
+  line-height: 1.5;
+  animation: popIn 0.4s ease;
+}
+.dialog::before {
+  content:''; position:absolute; top:-16px; left:50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-bottom-color: #FFC107;
+}
+
+/* ============================================================
+   MAP SCREEN
+   ============================================================ */
+.map-container {
+  position:relative; width: 100%; max-width: 900px; height: 70vh;
+  min-height: 400px;
+}
+.level-node {
+  position:absolute;
+  width: 130px; height: 130px;
+  background: linear-gradient(180deg,#FFD54F,#FF8F00);
+  border-radius: 50%;
+  border: 5px solid #5D4037;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  transition: all 0.25s;
+  color: #5D4037; font-weight:bold; text-align:center;
+  padding: 8px;
+  font-size: 0.85em;
+  animation: nodePulse 2s ease-in-out infinite;
+}
+@keyframes nodePulse {
+  0%,100% { box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 0 0 0 rgba(255,193,7,0.6); }
+  50%     { box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 0 0 18px rgba(255,193,7,0); }
+}
+.level-node:hover:not(.locked) {
+  transform: scale(1.12) rotate(-3deg);
+  background: linear-gradient(180deg,#FFEB3B,#FFA000);
+}
+.level-node.locked {
+  background: linear-gradient(180deg,#BDBDBD,#757575);
+  cursor:not-allowed; opacity: 0.75;
+  animation:none;
+}
+.level-node.completed {
+  background: linear-gradient(180deg,#81C784,#2E7D32);
+  color: white;
+}
+.level-node .node-icon { font-size: 2em; }
+.level-node .node-name { font-size: 0.75em; margin-top:2px; }
+.level-node .node-stars { font-size: 0.9em; margin-top:2px; }
+
+.path-line {
+  position:absolute; height:6px;
+  background: repeating-linear-gradient(90deg,#FFC107 0 12px, transparent 12px 24px);
+  border-radius:3px; z-index:0;
+}
+
+/* ============================================================
+   GAME SCREEN
+   ============================================================ */
+.game-topbar {
+  width:100%; max-width: 900px;
+  display:flex; justify-content:space-between; align-items:center;
+  background: rgba(255,255,255,0.92);
+  border-radius: 20px; padding: 10px 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  flex-wrap:wrap; gap:8px;
+}
+.hud-item {
+  font-weight:bold; color:#5D4037;
+  font-size: 0.95em;
+  display:flex; align-items:center; gap:6px;
+}
+.hud-icon { font-size:1.2em; }
+
+.progress-bar {
+  flex:1; height:14px; background:#EEE;
+  border-radius:8px; overflow:hidden;
+  min-width: 100px;
+  border:2px solid #FFC107;
+}
+.progress-fill {
+  height:100%; width:0%;
+  background: linear-gradient(90deg,#FFC107,#4CAF50);
+  border-radius:6px;
+  transition: width 0.4s ease;
+}
+
+.game-content {
+  width:100%; max-width: 900px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 25px; padding: 20px;
+  box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+  border: 5px solid #FFC107;
+  display:flex; flex-direction:column; align-items:center;
+  max-height: 72vh; overflow-y:auto;
+}
+
+.question-box {
+  background: linear-gradient(135deg,#FFF8E1,#FFECB3);
+  border-radius: 18px; padding: 14px 20px;
+  font-size: 1.15em; color:#5D4037;
+  text-align:center; margin-bottom: 16px;
+  border-left: 6px solid #FF9800;
+  width: 100%;
+  line-height: 1.4;
+}
+.question-box strong { color:#D32F2F; font-size: 1.3em; }
+
+/* Kartu jawaban */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px; width:100%; margin: 6px 0 14px;
+}
+.num-card {
+  padding: 20px 8px;
+  font-size: 1.5em; font-weight:bold;
+  background: linear-gradient(180deg,#FFFFFF,#FFF9C4);
+  color: #5D4037;
+  border: 4px solid #FFC107;
+  border-radius: 18px;
+  cursor:pointer;
+  transition: all 0.2s;
+  box-shadow: 0 6px 0 #E0A800, 0 8px 15px rgba(0,0,0,0.15);
+  position:relative;
+}
+.num-card:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 10px 0 #E0A800, 0 12px 20px rgba(0,0,0,0.2);
+}
+.num-card:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 3px 0 #E0A800; }
+.num-card:disabled { cursor:not-allowed; }
+.num-card.correct {
+  background: linear-gradient(180deg,#A5D6A7,#4CAF50);
+  color:white; border-color:#2E7D32;
+  animation: pulse 0.5s ease 2;
+}
+.num-card.wrong {
+  background: linear-gradient(180deg,#EF9A9A,#E53935);
+  color:white; border-color:#B71C1C;
+  animation: shake 0.4s ease;
+}
+.num-card.missed {
+  background: #FFF59D; border-color:#FBC02D;
+  animation: pulse 0.6s ease 2;
+}
+@keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-9px); }
+  40%,80% { transform: translateX(9px); }
+}
+.num-card.selected {
+  background: linear-gradient(180deg,#90CAF9,#2196F3);
+  color:white; border-color:#0D47A1;
+}
+.num-card.paired {
+  opacity: 0.5; pointer-events:none;
+  background: linear-gradient(180deg,#C8E6C9,#81C784);
+  color:white; border-color:#388E3C;
+}
+
+/* Flying cards untuk level 3 */
+.flying-card {
+  position: fixed; z-index: 50;
+  transition: all 0.9s cubic-bezier(0.5,-0.3,0.8,1.2);
+  pointer-events:none;
+}
+
+/* Feedback */
+.feedback-box {
+  min-height: 30px; font-weight:bold; font-size:1.05em;
+  text-align:center; margin: 6px 0; padding: 6px;
+  color: #5D4037; width:100%;
+}
+.feedback-box.correct { color:#2E7D32; }
+.feedback-box.wrong { color:#C62828; }
+
+/* Actions */
+.game-actions {
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   BADGE (LENCANA TERBANG)
+   ============================================================ */
+.badge-fly {
+  position: fixed; z-index: 200;
+  width: 100px; height: 100px;
+  pointer-events: none;
+  left: 50%; bottom: -150px;
+  transform: translateX(-50%) scale(0.3);
+  opacity: 0;
+  filter: drop-shadow(0 0 20px gold);
+}
+.badge-fly.show {
+  animation: badgeJourney 3.5s ease-in-out forwards;
+}
+@keyframes badgeJourney {
+  0%   { left:50%; bottom:-150px; transform:translateX(-50%) scale(0.3) rotate(0); opacity:0; }
+  15%  { left:50%; bottom:35%;   transform:translateX(-50%) scale(1.3) rotate(0); opacity:1; }
+  30%  { left:30%; bottom:45%;   transform:translateX(-50%) scale(1.2) rotate(-25deg); opacity:1; }
+  45%  { left:70%; bottom:55%;   transform:translateX(-50%) scale(1.2) rotate(25deg); opacity:1; }
+  60%  { left:35%; bottom:40%;   transform:translateX(-50%) scale(1.15) rotate(-15deg); opacity:1; }
+  75%  { left:65%; bottom:50%;   transform:translateX(-50%) scale(1.1) rotate(15deg); opacity:1; }
+  90%  { left:92%; top:8%;       transform:translateX(-50%) scale(0.5) rotate(0); opacity:1; }
+  100% { left:92%; top:8%;       transform:translateX(-50%) scale(0.15) rotate(0); opacity:0; }
+}
+
+/* Badge visual */
+.badge-hex {
+  width:100%; height:100%;
+  position: relative;
+  filter: drop-shadow(0 0 12px currentColor);
+}
+.badge-hex svg { width:100%; height:100%; }
+
+/* Badge reward popup */
+.badge-reward-popup {
+  position: fixed; inset:0; z-index: 210;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(0,0,0,0.55);
+  opacity:0; pointer-events:none; transition: opacity 0.4s;
+}
+.badge-reward-popup.show { opacity:1; pointer-events:auto; }
+.badge-reward-card {
+  background: white; border-radius: 30px; padding: 30px;
+  max-width: 420px; text-align:center;
+  border: 6px solid #FFD700;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.badge-reward-popup.show .badge-reward-card { transform: scale(1); }
+.badge-reward-card h2 { color:#B8860B; margin: 12px 0 6px; font-size:1.5em; }
+.badge-reward-card p { color:#5D4037; line-height:1.5; margin-bottom: 8px; }
+
+/* ============================================================
+   BADGE COLLECTION SCREEN
+   ============================================================ */
+.badge-collection {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px; width:100%; max-width: 700px; margin-top: 16px;
+}
+.badge-item {
+  background: white; border-radius: 20px; padding: 12px;
+  text-align:center; border: 3px solid #FFC107;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  transition: transform 0.3s;
+}
+.badge-item:hover { transform: translateY(-5px); }
+.badge-item.locked { filter: grayscale(1); opacity: 0.5; }
+.badge-item .badge-name { font-weight:bold; color:#B8860B; margin-top: 8px; font-size:0.9em; }
+.badge-item .badge-desc { font-size:0.75em; color:#8B4513; margin-top:4px; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset:0; z-index: 300;
+  background: rgba(0,0,0,0.65);
+  display:none; align-items:center; justify-content:center;
+  padding: 20px;
+}
+.modal-overlay.show { display:flex; }
+.modal-card {
+  background: white; border-radius: 25px;
+  padding: 25px 30px; max-width: 500px; width:100%;
+  text-align:center; border: 6px solid #FFD700;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  animation: popIn 0.4s ease;
+  max-height: 90vh; overflow-y:auto;
+}
+.modal-card h2 { color:#1e3c72; margin-bottom: 10px; }
+.modal-card p { color:#5D4037; line-height:1.6; margin: 6px 0; }
+.modal-card .big-emoji { font-size: 3.5em; margin-bottom: 6px; }
+.modal-actions { margin-top: 16px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+
+/* ============================================================
+   HASIL / RESULT SCREEN
+   ============================================================ */
+.result-grid {
+  display:grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  width:100%; margin: 12px 0;
+}
+.result-item {
+  background:#FFF8E1; border-radius:12px; padding:10px;
+  border-left:5px solid #FF9800;
+  font-size:0.9em; text-align:left; color:#5D4037;
+}
+.result-item .label { font-size:0.75em; color:#8B4513; }
+.result-item .value { font-weight:bold; font-size:1.15em; color:#B8860B; }
+
+/* ============================================================
+   TOGGLE SOUND BTN
+   ============================================================ */
+.corner-btn {
+  position: fixed; top: 12px; z-index: 400;
+  width: 48px; height: 48px; border-radius:50%;
+  border: 3px solid #FFC107; background:white;
+  font-size: 1.4em; cursor:pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display:flex; align-items:center; justify-content:center;
+  transition: transform 0.2s;
+}
+.corner-btn:hover { transform: scale(1.08); }
+#soundBtn { left: 12px; }
+#pauseBtn { left: 70px; }
+#homeBtn  { right: 12px; }
+
+/* ============================================================
+   STARS & SPARKLES (dekor)
+   ============================================================ */
+.sparkle {
+  position: absolute; pointer-events:none;
+  color: #FFD700; font-size: 20px;
+  animation: sparkleAnim 1.2s ease-out forwards;
+}
+@keyframes sparkleAnim {
+  0% { transform: scale(0) rotate(0); opacity:1; }
+  100% { transform: scale(1.5) rotate(180deg) translateY(-40px); opacity:0; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 700px) {
+  .menu-title { font-size:1.6em; }
+  .menu-card { padding: 22px 20px; }
+  .level-node { width: 100px; height:100px; font-size: 0.75em; }
+  .num-card { font-size: 1.2em; padding: 16px 6px; }
+  .question-box { font-size: 1em; }
+  .corner-btn { width: 42px; height: 42px; font-size:1.2em; }
+}
+@media (max-width: 480px) {
+  .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  .badge-collection { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Tombol global -->
+  <button class="corner-btn" id="soundBtn" title="Suara">🔊</button>
+  <button class="corner-btn" id="pauseBtn" title="Jeda">⏸️</button>
+  <button class="corner-btn" id="homeBtn" title="Menu">🏠</button>
+
+  <!-- ============ SCREEN: MENU ============ -->
+  <div class="screen active" id="screen-menu">
+    <div class="bg-sun"></div>
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="grass"></div>
+    <div class="flower" style="left:10%;">🌻</div>
+    <div class="flower" style="left:25%; animation-delay:0.5s;">🌷</div>
+    <div class="flower" style="left:80%; animation-delay:0.9s;">🌼</div>
+    <div class="flower" style="left:90%; animation-delay:1.2s;">🌸</div>
+
+    <div class="menu-card">
+      <div class="bimo-wrap" id="bimoMenu">
+        <!-- Robot lebah BIMO -->
+        <div class="wing left"></div>
+        <div class="wing right"></div>
+        <div class="bimo-antenna l"></div>
+        <div class="bimo-antenna r"></div>
+        <div class="bimo-head">
+          <div class="bimo-eye left"></div>
+          <div class="bimo-eye right"></div>
+          <div class="bimo-mouth"></div>
+        </div>
+        <div class="bimo-body">
+          <div class="bimo-stripe s1"></div>
+          <div class="bimo-stripe s2"></div>
+        </div>
+      </div>
+      <h1 class="menu-title">🐝 BEE FACTOR ADVENTURE 🐝</h1>
+      <p class="menu-subtitle">Petualangan Mencari Faktor bersama BIMO!</p>
+
+      <input type="text" id="playerName" placeholder="Tulis namamu di sini..." maxlength="20" />
+
+      <div>
+        <button class="btn btn-primary" id="btnStart">🚀 MULAI PETUALANGAN</button>
+      </div>
+      <div>
+        <button class="btn btn-secondary btn-small" id="btnHowTo">📖 CARA BERMAIN</button>
+        <button class="btn btn-warning btn-small" id="btnBadges">🏅 KOLEKSI LENCANA</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: MAP ============ -->
+  <div class="screen" id="screen-map">
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="grass"></div>
+
+    <h2 style="color:#B8860B; text-shadow:2px 2px 0 #FFD700; margin:6px;">🗺️ Peta Petualangan</h2>
+    <div class="dialog" id="mapDialog" style="max-width:500px; font-size:0.95em;">
+      Halo, Petualang! Pilih pulau untuk memulai petualangan faktor. Semangat! 🐝
+    </div>
+
+    <div class="map-container" id="mapContainer" style="margin-top:14px;"></div>
+
+    <div style="margin-top:10px;">
+      <button class="btn btn-danger btn-small" id="btnResetProgress">🔄 Reset Progres</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: GAME ============ -->
+  <div class="screen" id="screen-game">
+    <div class="game-topbar">
+      <span class="hud-item"><span class="hud-icon">⭐</span><span id="hudScore">0</span> madu</span>
+      <span class="hud-item"><span class="hud-icon">📍</span><span id="hudLevel">Level 1</span></span>
+      <div class="progress-bar"><div class="progress-fill" id="hudProgress"></div></div>
+      <span class="hud-item"><span class="hud-icon">✅</span><span id="hudCorrect">0</span>/<span id="hudTotal">0</span></span>
+    </div>
+
+    <div class="game-content">
+      <div style="display:flex; align-items:center; gap:12px; width:100%; justify-content:center;">
+        <div class="bimo-wrap mini" id="bimoGame">
+          <div class="wing left"></div>
+          <div class="wing right"></div>
+          <div class="bimo-antenna l"></div>
+          <div class="bimo-antenna r"></div>
+          <div class="bimo-head">
+            <div class="bimo-eye left"></div>
+            <div class="bimo-eye right"></div>
+            <div class="bimo-mouth"></div>
+          </div>
+          <div class="bimo-body">
+            <div class="bimo-stripe s1"></div>
+            <div class="bimo-stripe s2"></div>
+          </div>
+        </div>
+        <div class="dialog" id="bimoDialog" style="flex:1; margin-top:0; font-size:0.95em;">
+          Ayo kita mulai!
+        </div>
+      </div>
+
+      <div class="question-box" id="questionBox">Memuat soal...</div>
+      <div class="cards-grid" id="cardsGrid"></div>
+      <div class="feedback-box" id="feedbackBox"></div>
+
+      <div class="game-actions">
+        <button class="btn btn-secondary btn-small" id="btnHint">💡 Petunjuk</button>
+        <button class="btn btn-primary" id="btnCheck" disabled>✅ Periksa</button>
+        <button class="btn btn-success" id="btnNext" style="display:none;">➡️ Lanjut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: RESULT ============ -->
+  <div class="screen" id="screen-result">
+    <div class="grass"></div>
+    <div class="menu-card" style="max-width:620px;">
+      <div class="big-emoji" style="font-size:3.5em;">🏆</div>
+      <h1 class="menu-title" style="font-size:1.7em;">Petualangan Selesai!</h1>
+      <p class="menu-subtitle" id="resultGreeting">Selamat, Petualang!</p>
+
+      <div class="result-grid">
+        <div class="result-item"><div class="label">Nama</div><div class="value" id="rName">-</div></div>
+        <div class="result-item"><div class="label">Skor Madu</div><div class="value" id="rScore">0</div></div>
+        <div class="result-item"><div class="label">Jawaban Benar</div><div class="value" id="rCorrect">0</div></div>
+        <div class="result-item"><div class="label">Jawaban Salah</div><div class="value" id="rWrong">0</div></div>
+        <div class="result-item"><div class="label">Akurasi</div><div class="value" id="rAccuracy">0%</div></div>
+        <div class="result-item"><div class="label">Level Selesai</div><div class="value" id="rLevels">0/5</div></div>
+      </div>
+
+      <div style="background:#FFF8E1; border-radius:14px; padding:12px; margin-top:10px; font-size:0.9em; color:#5D4037; text-align:left;">
+        <strong>📚 Materi yang perlu dipelajari lagi:</strong>
+        <div id="rTopics">-</div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn btn-secondary" id="btnViewBadges">🏅 Lihat Lencana</button>
+        <button class="btn btn-warning" id="btnPrint">🖨️ Cetak Hasil</button>
+        <button class="btn btn-primary" id="btnPlayAgain">🔁 Main Lagi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: BADGE COLLECTION ============ -->
+  <div class="screen" id="screen-badges">
+    <div class="grass"></div>
+    <h2 style="color:#B8860B; text-shadow:2px 2px 0 #FFD700; margin:6px;">🏅 Koleksi Lencana Terbang</h2>
+    <div class="dialog" style="max-width:520px; font-size:0.95em;">
+      Kumpulkan lencana dengan menyelesaikan tantangan faktor! Setiap lencana bisa terbang, lho! ✨
+    </div>
+    <div class="badge-collection" id="badgeCollection"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-secondary" id="btnBackFromBadges">⬅️ Kembali</button>
+    </div>
+  </div>
+
+  <!-- ============ BADGE REWARD POPUP ============ -->
+  <div class="badge-reward-popup" id="badgeRewardPopup">
+    <div class="badge-reward-card">
+      <div id="badgeRewardVisual" style="width:140px; height:140px; margin:0 auto;"></div>
+      <h2 id="badgeRewardTitle">Lencana Baru!</h2>
+      <p id="badgeRewardDesc">Kamu mendapatkan lencana ini karena hebat!</p>
+      <button class="btn btn-primary" id="btnCloseBadgePopup">Lanjut</button>
+    </div>
+  </div>
+
+  <!-- ============ GENERIC MODAL ============ -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+      <div class="big-emoji" id="modalEmoji">💬</div>
+      <h2 id="modalTitle">Pesan</h2>
+      <p id="modalMessage"></p>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- ============ PAUSE MODAL ============ -->
+  <div class="modal-overlay" id="pauseModal">
+    <div class="modal-card">
+      <div class="big-emoji">⏸️</div>
+      <h2>Jeda Permainan</h2>
+      <p>Mau lanjut bermain atau kembali ke menu?</p>
+      <div class="modal-actions">
+        <button class="btn btn-success" id="btnResume">▶️ Lanjut</button>
+        <button class="btn btn-warning" id="btnRestartLevel">🔄 Ulangi Level</button>
+        <button class="btn btn-danger" id="btnToMenu">🏠 Menu</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   BEE FACTOR ADVENTURE — Core Game Script
+   ============================================================ */
+
+/* ---------- AUDIO ---------- */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let soundEnabled = true;
+
+function ensureAudio() {
+  if (!audioCtx && AudioCtx) audioCtx = new AudioCtx();
+}
+function beep(freq, duration=0.12, type='sine', vol=0.15) {
+  if (!soundEnabled) return;
+  ensureAudio(); if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + duration);
+}
+function sfxCorrect() { beep(660,0.1,'sine',0.2); setTimeout(()=>beep(880,0.15,'sine',0.2),100); setTimeout(()=>beep(1100,0.2,'sine',0.2),220); }
+function sfxWrong()   { beep(260,0.15,'square',0.15); setTimeout(()=>beep(200,0.2,'square',0.15),130); }
+function sfxClick()   { beep(520,0.06,'square',0.1); }
+function sfxLevel()   { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'sine',0.18),i*120)); }
+function sfxBadge()   { [523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'triangle',0.18),i*100)); }
+
+/* ---------- STATE ---------- */
+const GameState = {
+  playerName: '',
+  score: 0,
+  currentLevel: 1,
+  totalLevels: 5,
+  completedLevels: [],
+  correctAnswers: 0,
+  wrongAnswers: 0,
+  totalQuestions: 0,
+  badges: [], // ids
+  weakTopics: new Set(),
+  levelStats: {} // level -> {correct, wrong}
+};
+
+/* ---------- BADGE DEFINITIONS ---------- */
+const BADGES = {
+  pemula:   { id:'pemula',   name:'Lencana Lebah Pemula',  desc:'Menyelesaikan Level 1', color:'#FFB300', icon:'🐝' },
+  sayapEmas:{ id:'sayapEmas',name:'Lencana Sayap Emas',    desc:'Menyelesaikan Level 2', color:'#FFD700', icon:'👑' },
+  pemburu:  { id:'pemburu',  name:'Lencana Pemburu Faktor',desc:'Menemukan seluruh faktor dengan benar', color:'#7E57C2', icon:'🎯' },
+  cerdas:   { id:'cerdas',   name:'Lencana Lebah Cerdas',  desc:'Akurasi ≥ 80% di Level 5', color:'#42A5F5', icon:'🧠' },
+  raja:     { id:'raja',     name:'Lencana Ratu & Raja Faktor', desc:'Menyelesaikan semua level', color:'#EC407A', icon:'👑' }
+};
+
+/* ---------- SVG BADGE RENDERER ---------- */
+function renderBadgeSVG(badge, size=100) {
+  const c = badge.color;
+  return `
+  <svg viewBox="0 0 100 100" width="${size}" height="${size}">
+    <defs>
+      <radialGradient id="g-${badge.id}" cx="35%" cy="30%">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+        <stop offset="40%" stop-color="${c}" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#7B4B00" stop-opacity="1"/>
+      </radialGradient>
+      <filter id="glow-${badge.id}">
+        <feGaussianBlur stdDeviation="2" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <!-- Wings -->
+    <ellipse cx="18" cy="50" rx="14" ry="9" fill="rgba(200,240,255,0.9)" stroke="#4DD0E1" stroke-width="1.5" transform="rotate(-20 18 50)"/>
+    <ellipse cx="82" cy="50" rx="14" ry="9" fill="rgba(200,240,255,0.9)" stroke="#4DD0E1" stroke-width="1.5" transform="rotate(20 82 50)"/>
+    <!-- Hexagon -->
+    <polygon points="50,8 88,29 88,71 50,92 12,71 12,29"
+             fill="url(#g-${badge.id})" stroke="#7B4B00" stroke-width="3" filter="url(#glow-${badge.id})"/>
+    <!-- Shine -->
+    <polygon points="50,14 80,32 80,68 50,86 20,68 20,32"
+             fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+    <!-- Icon -->
+    <text x="50" y="62" text-anchor="middle" font-size="34" font-family="Comic Sans MS">${badge.icon}</text>
+  </svg>`;
+}
+
+/* ---------- DOM ---------- */
+const $ = id => document.getElementById(id);
+const screens = {
+  menu:    $('screen-menu'),
+  map:     $('screen-map'),
+  game:    $('screen-game'),
+  result:  $('screen-result'),
+  badges:  $('screen-badges')
+};
+let previousScreen = 'menu';
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  if (screens[name]) screens[name].classList.add('active');
+  previousScreen = name;
+}
+
+/* ---------- BIMO CONTROL ---------- */
+function bimoCelebrate() {
+  const b = $('bimoGame');
+  b.classList.remove('sad');
+  b.classList.add('celebrate');
+  setTimeout(()=>b.classList.remove('celebrate'), 2200);
+}
+function bimoSad() {
+  const b = $('bimoGame');
+  b.classList.remove('celebrate');
+  b.classList.add('sad');
+  setTimeout(()=>b.classList.remove('sad'), 1400);
+}
+function bimoSay(text) {
+  $('bimoDialog').textContent = text;
+}
+function bimoBlink() {
+  document.querySelectorAll('.bimo-eye').forEach(e => {
+    e.classList.add('blink');
+    setTimeout(()=>e.classList.remove('blink'), 300);
+  });
+}
+setInterval(()=>{ if (Math.random()<0.3) bimoBlink(); }, 2500);
+
+/* ---------- SPARKLES ---------- */
+function spawnSparkles(x, y, count=6) {
+  for (let i=0;i<count;i++) {
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    s.textContent = ['✨','⭐','💫','🌟'][Math.floor(Math.random()*4)];
+    s.style.left = (x + (Math.random()-0.5)*120) + 'px';
+    s.style.top  = (y + (Math.random()-0.5)*80) + 'px';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(), 1300);
+  }
+}
+
+/* ============================================================
+   LEVEL DATA
+   ============================================================ */
+const LEVELS = [
+  {
+    id: 1,
+    island: 'Kebun Faktor',
+    icon: '🌻',
+    bimo: 'Selamat datang di Kebun Faktor! Pilih jawaban yang benar, ya!',
+    questions: [
+      { type:'mc', q:'Manakah yang merupakan faktor dari <strong>12</strong>?',
+        options:[3,5,7,8], correct:3, explain:'12 : 3 = 4 (tanpa sisa). Jadi 3 adalah faktor 12.' },
+      { type:'mc', q:'Manakah yang merupakan faktor dari <strong>15</strong>?',
+        options:[2,3,4,6], correct:3, explain:'15 : 3 = 5 (tanpa sisa). Jadi 3 adalah faktor 15.' },
+      { type:'mc', q:'Manakah yang BUKAN faktor dari <strong>10</strong>?',
+        options:[1,2,5,4], correct:4, explain:'10 : 4 = 2 sisa 2. Jadi 4 bukan faktor 10.' },
+      { type:'mc', q:'Manakah yang merupakan faktor dari <strong>20</strong>?',
+        options:[3,6,5,7], correct:5, explain:'20 : 5 = 4 (tanpa sisa). Jadi 5 adalah faktor 20.' },
+      { type:'mc', q:'Manakah yang BUKAN faktor dari <strong>8</strong>?',
+        options:[1,2,3,4], correct:3, explain:'8 : 3 = 2 sisa 2. Jadi 3 bukan faktor 8.' }
+    ]
+  },
+  {
+    id: 2,
+    island: 'Sarang Pasangan Perkalian',
+    icon: '🍯',
+    bimo: 'Temukan pasangan perkalian yang hasilnya sesuai!',
+    questions: [
+      { type:'pair', q:'Temukan pasangan perkalian yang menghasilkan <strong>18</strong>!',
+        pairs:[[1,18],[2,9],[3,6]], options:[1,2,3,6,9,18], distractors:[4,5,7,8] },
+      { type:'pair', q:'Temukan pasangan perkalian yang menghasilkan <strong>12</strong>!',
+        pairs:[[1,12],[2,6],[3,4]], options:[1,2,3,4,6,12], distractors:[5,7,8,10] },
+      { type:'pair', q:'Temukan pasangan perkalian yang menghasilkan <strong>20</strong>!',
+        pairs:[[1,20],[2,10],[4,5]], options:[1,2,4,5,10,20], distractors:[3,6,8,15] },
+      { type:'pair', q:'Temukan pasangan perkalian yang menghasilkan <strong>16</strong>!',
+        pairs:[[1,16],[2,8],[4,4]], options:[1,2,4,8,16], distractors:[3,6,10,12] }
+    ]
+  },
+  {
+    id: 3,
+    island: 'Terbang Mencari Faktor',
+    icon: '🌼',
+    bimo: 'Bantu BIMO menangkap SEMUA faktor! Klik angka yang benar.',
+    questions: [
+      { type:'multi', q:'Tangkap semua faktor dari <strong>24</strong>!',
+        options:[1,2,3,4,5,6,7,8,9,12,16,24],
+        correct:[1,2,3,4,6,8,12,24] },
+      { type:'multi', q:'Tangkap semua faktor dari <strong>18</strong>!',
+        options:[1,2,3,4,5,6,8,9,12,18],
+        correct:[1,2,3,6,9,18] },
+      { type:'multi', q:'Tangkap semua faktor dari <strong>30</strong>!',
+        options:[1,2,3,4,5,6,8,10,12,15,20,30],
+        correct:[1,2,3,5,6,10,15,30] }
+    ]
+  },
+  {
+    id: 4,
+    island: 'Jembatan Bilangan',
+    icon: '🌉',
+    bimo: 'Jawab dengan benar agar jembatan menuju sarang madu terbangun!',
+    questions: [
+      { type:'mc', q:'Manakah yang <strong>BUKAN</strong> faktor dari <strong>20</strong>?',
+        options:[2,4,5,6], correct:6, explain:'20 : 6 = 3 sisa 2. Jadi 6 bukan faktor 20.' },
+      { type:'mc', q:'Manakah yang <strong>BUKAN</strong> faktor dari <strong>28</strong>?',
+        options:[4,6,7,14], correct:6, explain:'28 : 6 = 4 sisa 4. Jadi 6 bukan faktor 28.' },
+      { type:'mc', q:'Manakah yang <strong>BUKAN</strong> faktor dari <strong>36</strong>?',
+        options:[9,12,8,18], correct:8, explain:'36 : 8 = 4 sisa 4. Jadi 8 bukan faktor 36.' },
+      { type:'mc', q:'Manakah yang <strong>BUKAN</strong> faktor dari <strong>45</strong>?',
+        options:[5,7,9,15], correct:7, explain:'45 : 7 = 6 sisa 3. Jadi 7 bukan faktor 45.' },
+      { type:'mc', q:'Manakah yang <strong>BUKAN</strong> faktor dari <strong>50</strong>?',
+        options:[5,6,10,25], correct:6, explain:'50 : 6 = 8 sisa 2. Jadi 6 bukan faktor 50.' }
+    ]
+  },
+  {
+    id: 5,
+    island: 'Bos Penjaga Madu',
+    icon: '👑',
+    bimo: 'Ini tantangan terakhir! Buktikan kamu Master Faktor!',
+    questions: [
+      { type:'mc', q:'Faktor dari <strong>32</strong> yang paling besar adalah...',
+        options:[8,16,32,64], correct:32, explain:'Faktor terbesar dari suatu bilangan adalah bilangan itu sendiri.' },
+      { type:'multi', q:'Pilih SEMUA faktor dari <strong>40</strong>!',
+        options:[1,2,4,5,6,8,10,20,40],
+        correct:[1,2,4,5,8,10,20,40] },
+      { type:'tf', q:'Benar atau Salah: <strong>7</strong> adalah faktor dari <strong>42</strong>.',
+        correct:true, explain:'42 : 7 = 6 (tanpa sisa). Jadi benar.' },
+      { type:'tf', q:'Benar atau Salah: <strong>9</strong> adalah faktor dari <strong>50</strong>.',
+        correct:false, explain:'50 : 9 = 5 sisa 5. Jadi salah.' },
+      { type:'mc', q:'Manakah pasangan faktor dari <strong>45</strong>?',
+        options:['5 × 8','5 × 9','6 × 7','4 × 11'], correct:'5 × 9', explain:'5 × 9 = 45. Benar!' },
+      { type:'multi', q:'Pilih SEMUA faktor dari <strong>36</strong>!',
+        options:[1,2,3,4,6,8,9,12,18,36],
+        correct:[1,2,3,4,6,9,12,18,36] },
+      { type:'mc', q:'Faktor dari <strong>28</strong> yang paling besar adalah...',
+        options:[7,14,28,56], correct:28, explain:'Faktor terbesar adalah bilangan itu sendiri.' },
+      { type:'tf', q:'Benar atau Salah: <strong>1</strong> adalah faktor dari semua bilangan.',
+        correct:true, explain:'Betul! Setiap bilangan habis dibagi 1.' },
+      { type:'multi', q:'Pilih SEMUA faktor dari <strong>48</strong>!',
+        options:[1,2,3,4,6,8,10,12,16,24,48],
+        correct:[1,2,3,4,6,8,12,16,24,48] },
+      { type:'mc', q:'Manakah yang <strong>BUKAN</strong> faktor dari <strong>60</strong>?',
+        options:[6,8,10,12], correct:8, explain:'60 : 8 = 7 sisa 4. Jadi 8 bukan faktor 60.' }
+    ]
+  }
+];
+
+/* ============================================================
+   MAP RENDERING
+   ============================================================ */
+function renderMap() {
+  const container = $('mapContainer');
+  container.innerHTML = '';
+  const w = container.clientWidth || 800;
+  const h = container.clientHeight || 400;
+
+  // Posisi 5 node dalam pola zigzag
+  const positions = [
+    { x: 0.08, y: 0.65 },
+    { x: 0.28, y: 0.25 },
+    { x: 0.50, y: 0.65 },
+    { x: 0.72, y: 0.25 },
+    { x: 0.92, y: 0.65 }
+  ];
+
+  // Gambar garis penghubung
+  for (let i=0;i<positions.length-1;i++) {
+    const a = positions[i], b = positions[i+1];
+    const x1 = a.x*w + 65, y1 = a.y*h + 65;
+    const x2 = b.x*w + 65, y2 = b.y*h + 65;
+    const dx = x2-x1, dy = y2-y1;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy,dx) * 180/Math.PI;
+    const line = document.createElement('div');
+    line.className = 'path-line';
+    line.style.width = len + 'px';
+    line.style.left = x1 + 'px';
+    line.style.top = y1 + 'px';
+    line.style.transform = `rotate(${angle}deg)`;
+    line.style.transformOrigin = '0 0';
+    container.appendChild(line);
+  }
+
+  LEVELS.forEach((lvl, i) => {
+    const pos = positions[i];
+    const node = document.createElement('div');
+    node.className = 'level-node';
+    const completed = GameState.completedLevels.includes(lvl.id);
+    const locked = lvl.id > 1 && !GameState.completedLevels.includes(lvl.id - 1);
+    if (completed) node.classList.add('completed');
+    if (locked) node.classList.add('locked');
+    node.style.left = (pos.x*w) + 'px';
+    node.style.top  = (pos.y*h) + 'px';
+    node.innerHTML = `
+      <div class="node-icon">${lvl.icon}</div>
+      <div class="node-name">Lv ${lvl.id}</div>
+      <div class="node-name" style="font-size:0.65em;">${lvl.island}</div>
+      ${completed?'<div class="node-stars">⭐⭐⭐</div>':'<div class="node-stars" style="color:#5D4037;font-size:0.75em;">🔒</div>'}
+    `;
+    if (!locked) node.onclick = () => { sfxClick(); startLevel(lvl.id); };
+    container.appendChild(node);
+  });
+}
+
+/* ============================================================
+   GAME ENGINE
+   ============================================================ */
+let gameSession = null;
+
+function startLevel(levelId) {
+  const lvl = LEVELS.find(l => l.id === levelId);
+  gameSession = {
+    levelId,
+    level: lvl,
+    qIndex: 0,
+    correct: 0,
+    wrong: 0,
+    answered: false,
+    selected: null,   // untuk mc/tf
+    selectedSet: new Set(), // untuk multi
+    pairedCards: new Set(), // untuk pair
+    pairTmp: null,
+    usedHint: false,
+    isLastLevel: levelId === 5
+  };
+  GameState.totalQuestions += lvl.questions.length;
+  GameState.levelStats[levelId] = { correct:0, wrong:0, asked:0 };
+  showScreen('game');
+  bimoSay(lvl.bimo);
+  loadQuestion();
+}
+
+function loadQuestion() {
+  const s = gameSession;
+  const q = s.level.questions[s.qIndex];
+  s.answered = false;
+  s.selected = null;
+  s.selectedSet.clear();
+  s.pairedCards.clear();
+  s.pairTmp = null;
+  s.usedHint = false;
+
+  $('hudLevel').textContent = `Lv ${s.levelId}: ${s.level.island}`;
+  updateHUD();
+  $('questionBox').innerHTML = q.q;
+  $('feedbackBox').textContent = '';
+  $('feedbackBox').className = 'feedback-box';
+  $('btnCheck').disabled = true;
+  $('btnCheck').style.display = 'inline-block';
+  $('btnNext').style.display = 'none';
+  $('btnHint').disabled = false;
+  bimoSay(s.level.bimo);
+
+  const grid = $('cardsGrid');
+  grid.innerHTML = '';
+
+  if (q.type === 'mc') {
+    q.options.forEach(opt => {
+      const card = document.createElement('button');
+      card.className = 'num-card';
+      card.textContent = opt;
+      card.onclick = () => selectMC(card, opt);
+      grid.appendChild(card);
+    });
+  } else if (q.type === 'multi') {
+    q.options.forEach(opt => {
+      const card = document.createElement('button');
+      card.className = 'num-card';
+      card.textContent = opt;
+      card.onclick = () => toggleMulti(card, opt);
+      grid.appendChild(card);
+    });
+  } else if (q.type === 'tf') {
+    ['Benar','Salah'].forEach(opt => {
+      const card = document.createElement('button');
+      card.className = 'num-card';
+      card.style.fontSize = '1.1em';
+      card.textContent = opt;
+      card.onclick = () => selectMC(card, opt);
+      grid.appendChild(card);
+    });
+  } else if (q.type === 'pair') {
+    // Tampilkan kartu angka untuk dipasangkan
+    const all = [...q.options].sort(() => Math.random() - 0.5);
+    all.forEach(opt => {
+      const card = document.createElement('button');
+      card.className = 'num-card';
+      card.textContent = opt;
+      card.dataset.val = opt;
+      card.onclick = () => handlePairClick(card, opt);
+      grid.appendChild(card);
+    });
+    // Instruksi
+    const info = document.createElement('div');
+    info.style.gridColumn = '1/-1';
+    info.style.fontSize = '0.9em';
+    info.style.color = '#8B4513';
+    info.textContent = 'Klik dua angka untuk membentuk pasangan perkalian.';
+    grid.appendChild(info);
+  }
+}
+
+function updateHUD() {
+  $('hudScore').textContent = GameState.score;
+  $('hudCorrect').textContent = GameState.correctAnswers;
+  $('hudTotal').textContent = GameState.totalQuestions;
+  const s = gameSession;
+  const prog = s ? ((s.qIndex) / s.level.questions.length) * 100 : 0;
+  $('hudProgress').style.width = prog + '%';
+}
+
+/* ---------- JAWABAN: MC / TF ---------- */
+function selectMC(card, val) {
+  if (gameSession.answered) return;
+  sfxClick();
+  document.querySelectorAll('#cardsGrid .num-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  gameSession.selected = val;
+  $('btnCheck').disabled = false;
+}
+
+/* ---------- JAWABAN: MULTI ---------- */
+function toggleMulti(card, val) {
+  if (gameSession.answered) return;
+  sfxClick();
+  if (gameSession.selectedSet.has(val)) {
+    gameSession.selectedSet.delete(val);
+    card.classList.remove('selected');
+  } else {
+    gameSession.selectedSet.add(val);
+    card.classList.add('selected');
+  }
+  $('btnCheck').disabled = gameSession.selectedSet.size === 0;
+}
+
+/* ---------- JAWABAN: PAIR ---------- */
+function handlePairClick(card, val) {
+  if (gameSession.answered) return;
+  if (gameSession.pairedCards.has(val)) return;
+  sfxClick();
+
+  if (gameSession.pairTmp === null) {
+    gameSession.pairTmp = { val, card };
+    card.classList.add('selected');
+  } else if (gameSession.pairTmp.val === val) {
+    // klik angka yang sama → batal
+    card.classList.remove('selected');
+    gameSession.pairTmp = null;
+  } else {
+    // Cek pasangan
+    const q = gameSession.level.questions[gameSession.qIndex];
+    const a = gameSession.pairTmp.val, b = val;
+    const isPair = q.pairs.some(([x,y]) => (x===a&&y===b)||(x===b&&y===a));
+    const tmpCard = gameSession.pairTmp.card;
+
+    if (isPair) {
+      tmpCard.classList.remove('selected');
+      tmpCard.classList.add('paired');
+      card.classList.add('paired');
+      gameSession.pairedCards.add(a);
+      gameSession.pairedCards.add(b);
+      sfxCorrect();
+      // Cek jika semua pasangan sudah ketemu
+      const needed = new Set(q.pairs.flat());
+      const done = [...needed].every(v => gameSession.pairedCards.has(v));
+      if (done) {
+        // Semua pasangan ketemu → otomatis benar
+        gameSession.selected = '__pair_done__';
+        $('btnCheck').disabled = false;
+        bimoSay('Semua pasangan ketemu! Klik Periksa, ya!');
+      }
+    } else {
+      sfxWrong();
+      tmpCard.classList.remove('selected');
+      tmpCard.classList.add('wrong');
+      card.classList.add('wrong');
+      setTimeout(() => {
+        tmpCard.classList.remove('wrong');
+        card.classList.remove('wrong');
+      }, 500);
+      bimoSay('Hmm, itu bukan pasangan yang tepat. Coba lagi!');
+    }
+    gameSession.pairTmp = null;
+  }
+}
+
+/* ---------- HINT ---------- */
+$('btnHint').onclick = () => {
+  if (!gameSession || gameSession.answered) return;
+  const q = gameSession.level.questions[gameSession.qIndex];
+  gameSession.usedHint = true;
+  sfxClick();
+  let hint = '';
+  if (q.type === 'mc') {
+    hint = 'Ingat: faktor tidak menghasilkan sisa ketika membagi bilangan. Coba bagi bilangan dengan setiap pilihan.';
+  } else if (q.type === 'multi') {
+    hint = 'Cari semua angka yang bisa membagi bilangan tersebut tanpa sisa. Mulai dari 1, lalu 2, 3, dst.';
+  } else if (q.type === 'tf') {
+    hint = 'Coba bagi bilangan dengan angka yang disebutkan. Jika tidak ada sisa, berarti faktor.';
+  } else if (q.type === 'pair') {
+    hint = 'Pasangan perkalian contohnya 1 × bilangan, 2 × ..., dst. Cari angka yang jika dikalikan hasilnya bilangan target.';
+  }
+  bimoSay('💡 ' + hint);
+  $('btnHint').disabled = true;
+};
+
+/* ---------- CHECK ANSWER ---------- */
+$('btnCheck').onclick = () => {
+  if (!gameSession || gameSession.answered) return;
+  const s = gameSession;
+  const q = s.level.questions[s.qIndex];
+  s.answered = true;
+
+  let isCorrect = false;
+  let points = 100;
+
+  if (q.type === 'mc') {
+    isCorrect = (s.selected === q.correct);
+    highlightMC(q.correct, s.selected);
+  } else if (q.type === 'tf') {
+    const ansStr = s.selected === 'Benar' ? true : false;
+    isCorrect = (ansStr === q.correct);
+    // tandai benar
+    document.querySelectorAll('#cardsGrid .num-card').forEach(c => {
+      const isRight = (c.textContent === 'Benar') === q.correct;
+      if (isRight) c.classList.add('correct');
+      else if (c.classList.contains('selected')) c.classList.add('wrong');
+      c.disabled = true;
+    });
+  } else if (q.type === 'multi') {
+    const correctSet = new Set(q.correct);
+    const selSet = s.selectedSet;
+    const allFound = correctSet.size === selSet.size && [...correctSet].every(v => selSet.has(v));
+    isCorrect = allFound;
+    // tandai
+    document.querySelectorAll('#cardsGrid .num-card').forEach(c => {
+      const v = parseInt(c.textContent);
+      c.disabled = true;
+      if (selSet.has(v) && correctSet.has(v)) c.classList.add('correct');
+      else if (selSet.has(v) && !correctSet.has(v)) c.classList.add('wrong');
+      else if (!selSet.has(v) && correctSet.has(v)) c.classList.add('missed');
+    });
+    // Badge khusus: Pemburu Faktor (menemukan seluruh faktor benar pada 1 tantangan)
+    if (isCorrect) grantBadge('pemburu');
+  } else if (q.type === 'pair') {
+    // Sudah dikelola di handlePairClick
+    const needed = new Set(q.pairs.flat());
+    const done = [...needed].every(v => s.pairedCards.has(v));
+    isCorrect = done;
+    document.querySelectorAll('#cardsGrid .num-card').forEach(c => c.disabled = true);
+  }
+
+  if (isCorrect) {
+    if (s.usedHint) points = 70;
+    GameState.score += points;
+    s.correct++;
+    GameState.correctAnswers++;
+    GameState.levelStats[s.levelId].correct++;
+    sfxCorrect();
+    bimoCelebrate();
+    const rect = $('cardsGrid').getBoundingClientRect();
+    spawnSparkles(rect.left + rect.width/2, rect.top + rect.height/2, 8);
+    const praise = ['Hebat! 🎉','Kamu makin jago matematika! 🌟','Mantap! ✨','Luar biasa! 🐝','Pintar sekali! 💯'];
+    bimoSay(praise[Math.floor(Math.random()*praise.length)]);
+    $('feedbackBox').textContent = `✅ Benar! +${points} madu poin.`;
+    $('feedbackBox').className = 'feedback-box correct';
+  } else {
+    s.wrong++;
+    GameState.wrongAnswers++;
+    GameState.levelStats[s.levelId].wrong++;
+    sfxWrong();
+    bimoSad();
+    const enc = ['Ayo, kita coba lagi! 💪','Tidak apa-apa, terus semangat! 🌈','Hampir benar, ayo teliti lagi! 🐝'];
+    bimoSay(enc[Math.floor(Math.random()*enc.length)]);
+    let msg = '❌ Belum tepat. ';
+    if (q.explain) msg += q.explain;
+    else if (q.type === 'multi') msg += 'Beberapa faktor belum tepat. Ingat, faktor tidak menghasilkan sisa.';
+    else if (q.type === 'pair') msg += 'Pasangan perkalian belum lengkap.';
+    $('feedbackBox').textContent = msg;
+    $('feedbackBox').className = 'feedback-box wrong';
+    if (q.type === 'mc') GameState.weakTopics.add('Menentukan faktor bilangan');
+    else if (q.type === 'multi') GameState.weakTopics.add('Mencari semua faktor');
+    else if (q.type === 'pair') GameState.weakTopics.add('Pasangan perkalian');
+    else if (q.type === 'tf') GameState.weakTopics.add('Membedakan faktor dan bukan faktor');
+  }
+
+  updateHUD();
+  $('btnCheck').style.display = 'none';
+  $('btnHint').disabled = true;
+  $('btnNext').style.display = 'inline-block';
+  $('btnNext').textContent = (s.qIndex < s.level.questions.length - 1) ? '➡️ Soal Berikutnya' : '🏁 Selesai Level';
+};
+
+function highlightMC(correctVal, selectedVal) {
+  document.querySelectorAll('#cardsGrid .num-card').forEach(c => {
+    const v = c.textContent;
+    // Untuk tf
+    if (typeof correctVal === 'boolean') {
+      const isRight = (v === 'Benar') === correctVal;
+      if (isRight) c.classList.add('correct');
+      else if (c.classList.contains('selected')) c.classList.add('wrong');
+      c.disabled = true;
+      return;
+    }
+    c.disabled = true;
+    if (v == correctVal) c.classList.add('correct');
+    else if (v == selectedVal) c.classList.add('wrong');
+  });
+}
+
+/* ---------- NEXT ---------- */
+$('btnNext').onclick = () => {
+  const s = gameSession;
+  sfxClick();
+  if (s.qIndex < s.level.questions.length - 1) {
+    s.qIndex++;
+    loadQuestion();
+  } else {
+    finishLevel();
+  }
+};
+
+/* ---------- FINISH LEVEL ---------- */
+function finishLevel() {
+  const s = gameSession;
+  // Bonus level
+  GameState.score += 200;
+
+  // Badge khusus per level
+  if (s.levelId === 1) grantBadge('pemula');
+  if (s.levelId === 2) grantBadge('sayapEmas');
+  if (s.levelId === 5) {
+    const stat = GameState.levelStats[5];
+    const asked = stat.correct + stat.wrong;
+    const acc = asked > 0 ? (stat.correct / asked) * 100 : 0;
+    if (acc >= 80) grantBadge('cerdas');
+  }
+
+  if (!GameState.completedLevels.includes(s.levelId)) {
+    GameState.completedLevels.push(s.levelId);
+  }
+
+  sfxLevel();
+  bimoCelebrate();
+
+  const isLast = s.levelId === GameState.totalLevels;
+
+  if (isLast) {
+    // Selesai semua level
+    if (GameState.completedLevels.length === GameState.totalLevels) {
+      grantBadge('raja');
+      GameState.score += 500;
+    }
+    setTimeout(showResult, 900);
+  } else {
+    showModal('🎉','Level Selesai!',
+      `Kamu menyelesaikan ${s.level.island}!\nBonus +200 madu.\nSkor: ${GameState.score}`,
+      [
+        { label:'🗺️ Kembali ke Peta', cls:'btn-primary', action: () => { closeModal(); renderMap(); showScreen('map'); } }
+      ]);
+  }
+}
+
+/* ---------- GRANT BADGE (dengan animasi terbang) ---------- */
+function grantBadge(badgeId) {
+  if (GameState.badges.includes(badgeId)) return;
+  const badge = BADGES[badgeId];
+  if (!badge) return;
+  GameState.badges.push(badgeId);
+
+  // Tampilkan popup lencana
+  $('badgeRewardVisual').innerHTML = renderBadgeSVG(badge, 140);
+  $('badgeRewardTitle').textContent = badge.name;
+  $('badgeRewardDesc').textContent = 'Kamu mendapatkan lencana ini karena: ' + badge.desc;
+  $('badgeRewardPopup').classList.add('show');
+  sfxBadge();
+}
+
+$('btnCloseBadgePopup').onclick = () => {
+  $('badgeRewardPopup').classList.remove('show');
+  // Setelah popup tertutup, jalankan animasi lencana terbang
+  flyBadgeToCorner();
+};
+
+function flyBadgeToCorner() {
+  const badgeId = GameState.badges[GameState.badges.length - 1];
+  if (!badgeId) return;
+  const badge = BADGES[badgeId];
+  const flyer = document.createElement('div');
+  flyer.className = 'badge-fly';
+  flyer.innerHTML = `<div class="badge-hex" style="color:${badge.color};">${renderBadgeSVG(badge,100)}</div>`;
+  document.body.appendChild(flyer);
+  requestAnimationFrame(() => flyer.classList.add('show'));
+  setTimeout(() => flyer.remove(), 3700);
+}
+
+/* ---------- SHOW RESULT ---------- */
+function showResult() {
+  $('rName').textContent = GameState.playerName || 'Petualang';
+  $('rScore').textContent = GameState.score;
+  $('rCorrect').textContent = GameState.correctAnswers;
+  $('rWrong').textContent = GameState.wrongAnswers;
+  const total = GameState.correctAnswers + GameState.wrongAnswers;
+  const acc = total > 0 ? Math.round((GameState.correctAnswers/total)*100) : 0;
+  $('rAccuracy').textContent = acc + '%';
+  $('rLevels').textContent = GameState.completedLevels.length + '/' + GameState.totalLevels;
+  $('resultGreeting').textContent = `Selamat, ${GameState.playerName || 'Petualang'}! Kamu telah menyelesaikan petualangan!`;
+
+  const topics = [...GameState.weakTopics];
+  $('rTopics').innerHTML = topics.length ? '<ul style="margin-left:18px;">' + topics.map(t=>`<li>${t}</li>`).join('') + '</ul>'
+                                          : 'Semua materi sudah dikuasai dengan baik! 🎉';
+
+  // Animasi lencana terbang di halaman hasil
+  showScreen('result');
+  sfxLevel();
+  // Lencana beterbangan
+  GameState.badges.forEach((bid, i) => {
+    setTimeout(() => {
+      const b = BADGES[bid];
+      const flyer = document.createElement('div');
+      flyer.className = 'badge-fly';
+      flyer.style.animationDuration = '4s';
+      flyer.innerHTML = `<div class="badge-hex" style="color:${b.color};">${renderBadgeSVG(b,80)}</div>`;
+      document.body.appendChild(flyer);
+      requestAnimationFrame(() => flyer.classList.add('show'));
+      setTimeout(() => flyer.remove(), 4200);
+    }, i * 400);
+  });
+}
+
+/* ============================================================
+   BADGE COLLECTION SCREEN
+   ============================================================ */
+function renderBadgeCollection() {
+  const cont = $('badgeCollection');
+  cont.innerHTML = '';
+  Object.values(BADGES).forEach(b => {
+    const owned = GameState.badges.includes(b.id);
+    const div = document.createElement('div');
+    div.className = 'badge-item' + (owned ? '' : ' locked');
+    div.innerHTML = `
+      ${renderBadgeSVG(b, 100)}
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${owned ? b.desc : '🔒 Belum terbuka'}</div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function showModal(emoji, title, message, actions) {
+  $('modalEmoji').textContent = emoji;
+  $('modalTitle').textContent = title;
+  $('modalMessage').innerHTML = message.replace(/\n/g,'<br>');
+  const box = $('modalActions');
+  box.innerHTML = '';
+  (actions || [{label:'OK',cls:'btn-primary',action:closeModal}]).forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (a.cls || 'btn-primary');
+    btn.textContent = a.label;
+    btn.onclick = a.action;
+    box.appendChild(btn);
+  });
+  $('modalOverlay').classList.add('show');
+}
+function closeModal() { $('modalOverlay').classList.remove('show'); }
+
+/* ============================================================
+   EVENT LISTENERS — MENU
+   ============================================================ */
+$('btnStart').onclick = () => {
+  ensureAudio();
+  const name = $('playerName').value.trim();
+  if (!name) {
+    showModal('✏️','Nama Belum Diisi','Tulis namamu dulu, ya, supaya BIMO tahu siapa yang bermain!',
+      [{label:'OK',cls:'btn-primary',action:closeModal}]);
+    return;
+  }
+  GameState.playerName = name;
+  sfxClick();
+  renderMap();
+  showScreen('map');
+};
+
+$('btnHowTo').onclick = () => {
+  sfxClick();
+  showModal('📖','Cara Bermain',
+    `1. Tulis namamu, lalu klik MULAI PETUALANGAN.\n2. Pilih pulau (level) di peta.\n3. Jawab soal tentang faktor bilangan.\n4. Kumpulkan madu poin dan lencana terbang!\n5. Selesaikan 5 level untuk menjadi Master Faktor!\n\n💡 Butuh bantuan? Klik tombol PETUNJUK saat bermain.`,
+    [{label:'Siap!',cls:'btn-primary',action:closeModal}]);
+};
+
+$('btnBadges').onclick = () => { sfxClick(); renderBadgeCollection(); showScreen('badges'); };
+$('btnBackFromBadges').onclick = () => { sfxClick(); showScreen(previousScreen === 'badges' ? 'menu' : previousScreen); };
+
+$('btnResetProgress').onclick = () => {
+  showModal('🔄','Reset Progres?','Semua progres level dan lencana akan dihapus. Yakin?',
+    [
+      {label:'Batal',cls:'btn-secondary',action:closeModal},
+      {label:'Ya, Reset',cls:'btn-danger',action:()=>{
+        GameState.completedLevels = [];
+        GameState.badges = [];
+        GameState.score = 0;
+        GameState.correctAnswers = 0;
+        GameState.wrongAnswers = 0;
+        GameState.totalQuestions = 0;
+        GameState.levelStats = {};
+        GameState.weakTopics.clear();
+        renderMap();
+        closeModal();
+        bimoSay('Progres sudah direset. Ayo mulai lagi dari awal!');
+      }}
+    ]);
+};
+
+/* ============================================================
+   EVENT LISTENERS — GLOBAL
+   ============================================================ */
+$('soundBtn').onclick = () => {
+  soundEnabled = !soundEnabled;
+  $('soundBtn').textContent = soundEnabled ? '🔊' : '🔇';
+  if (soundEnabled) { ensureAudio(); sfxClick(); }
+};
+
+$('pauseBtn').onclick = () => {
+  if (screens.game.classList.contains('active')) {
+    $('pauseModal').classList.add('show');
+  }
+};
+
+$('btnResume').onclick = () => { $('pauseModal').classList.remove('show'); };
+$('btnRestartLevel').onclick = () => {
+  $('pauseModal').classList.remove('show');
+  if (gameSession) startLevel(gameSession.levelId);
+};
+$('btnToMenu').onclick = () => {
+  $('pauseModal').classList.remove('show');
+  showScreen('menu');
+};
+
+$('homeBtn').onclick = () => {
+  showModal('🏠','Kembali ke Menu?','Progres permainan saat ini akan hilang.',
+    [
+      {label:'Batal',cls:'btn-secondary',action:closeModal},
+      {label:'Ya',cls:'btn-danger',action:()=>{
+        closeModal(); showScreen('menu');
+      }}
+    ]);
+};
+
+/* ============================================================
+   RESULT SCREEN
+   ============================================================ */
+$('btnViewBadges').onclick = () => { sfxClick(); renderBadgeCollection(); showScreen('badges'); };
+$('btnPlayAgain').onclick = () => {
+  sfxClick();
+  GameState.score = 0;
+  GameState.correctAnswers = 0;
+  GameState.wrongAnswers = 0;
+  GameState.totalQuestions = 0;
+  GameState.completedLevels = [];
+  GameState.badges = [];
+  GameState.levelStats = {};
+  GameState.weakTopics.clear();
+  renderMap();
+  showScreen('menu');
+};
+$('btnPrint').onclick = () => { window.print(); };
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('resize', () => {
+  if (screens.map.classList.contains('active')) renderMap();
+});
+
+// Dengarkan klik pertama untuk unlock audio
+document.addEventListener('click', () => ensureAudio(), { once: true });
+
+// Fokus otomatis ke input nama
+setTimeout(()=>$('playerName').focus(), 500);
+
+console.log('%c🐝 Bee Factor Adventure siap dimainkan!','color:#FFA000;font-size:16px;font-weight:bold;');
+</script>
+</body>
+</html>
